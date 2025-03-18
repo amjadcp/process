@@ -6,20 +6,19 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/amjadcp/process/config"
 )
 
+// Groq implements the AIService interface using the Groq API.
 type Groq struct {
-	URL string
-	Model string
+	URL    string
+	Model  string
 	APIKEY string
 }
 
-
-func (g Groq)Chat(prompt string)(*string, error) {
+// Chat sends a prompt to the Groq API and returns the response as a string.
+func (g Groq) Chat(prompt string) (string, error) {
 	reqBody := GroqRequest{
-		Model: config.Env.GROQ_MODEL,
+		Model: g.Model,
 		Messages: []Message{
 			{
 				Role:    "user",
@@ -29,37 +28,32 @@ func (g Groq)Chat(prompt string)(*string, error) {
 	}
 	payload, err := json.Marshal(reqBody)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	req, err := http.NewRequest("POST", config.Env.GROQ_API_URL, bytes.NewBuffer(payload))
+	req, err := http.NewRequest("POST", g.URL, bytes.NewBuffer(payload))
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	
+
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+config.Env.GROQ_API_KEY)
+	req.Header.Set("Authorization", "Bearer "+g.APIKEY)
 
 	client := http.Client{Timeout: 30 * time.Second}
-
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-
 	defer resp.Body.Close()
 
 	var groqResp GroqResponse
 	if err := json.NewDecoder(resp.Body).Decode(&groqResp); err != nil {
-		return nil, err
+		return "", err
 	}
 
 	if len(groqResp.Choices) == 0 {
-		return nil, fmt.Errorf("no choices in groq response")
+		return "", fmt.Errorf("no choices in groq response")
 	}
 
-	return &groqResp.Choices[0].Message.Content, nil
+	return groqResp.Choices[0].Message.Content, nil
 }
-
-
-

@@ -21,39 +21,42 @@ type ProcessInfo struct {
 }
 
 // TrackProcesses monitors process changes and triggers events.
-func TrackProcesses(events chan<- string) {
+// It uses a polling interval and sends events to the provided channel.
+func TrackProcesses(events chan<- string, pollInterval time.Duration) {
 	prevProcesses := make(map[int32]ProcessInfo)
-	var mu sync.Mutex
 
 	for {
 		currentProcesses, err := GetProcesses()
 		if err != nil {
 			events <- fmt.Sprintf("Error retrieving processes: %v", err)
-			time.Sleep(2 * time.Second)
+			time.Sleep(pollInterval)
 			continue
 		}
 
-		mu.Lock()
-		changes := detectChanges(prevProcesses, currentProcesses)
-		mu.Unlock()
+		// Detect changes between previous and current process states.
+		newProcs, changeEvents := detectChanges(prevProcesses, currentProcesses)
 
-		for _, event := range changes {
+		// Send change events (status changes, stopped processes).
+		for _, event := range changeEvents {
 			events <- event
 		}
 
-		// Update the previous process list.
-		mu.Lock()
+		// For each new process, analyze it asynchronously.
+		for _, proc := range newProcs {
+			go analyzeNewProcess(proc, events)
+		}
+
+		// Update previous processes.
 		prevProcesses = make(map[int32]ProcessInfo)
 		for _, proc := range currentProcesses {
 			prevProcesses[proc.PID] = proc
 		}
-		mu.Unlock()
 
-		time.Sleep(2 * time.Second) // Poll every 2 seconds.
+		time.Sleep(pollInterval)
 	}
 }
 
-// GetProcesses retrieves a list of running processes.
+// GetProcesses retrieves a list of running processes using a worker pool to limit concurrency.
 func GetProcesses() ([]ProcessInfo, error) {
 	procs, err := process.Processes()
 	if err != nil {
@@ -63,18 +66,37 @@ func GetProcesses() ([]ProcessInfo, error) {
 	var results []ProcessInfo
 	var wg sync.WaitGroup
 	var mu sync.Mutex
+	concurrencyLimit := 10
+	sem := make(chan struct{}, concurrencyLimit)
 
 	for _, p := range procs {
+		sem <- struct{}{}
 		wg.Add(1)
 		go func(proc *process.Process) {
 			defer wg.Done()
+			defer func() { <-sem }()
 
-			name, _ := proc.Name()
-			statusSlice, _ := proc.Status()
-			status := strings.Join(statusSlice, ", ")
-			cpu, _ := proc.CPUPercent()
-			mem, _ := proc.MemoryPercent()
-			cmd, _ := proc.Cmdline()
+			name, err := proc.Name()
+			if err != nil {
+				name = "Unknown"
+			}
+			statusSlice, err := proc.Status()
+			status := "Unknown"
+			if err == nil {
+				status = strings.Join(statusSlice, ", ")
+			}
+			cpu, err := proc.CPUPercent()
+			if err != nil {
+				cpu = 0.0
+			}
+			mem, err := proc.MemoryPercent()
+			if err != nil {
+				mem = 0.0
+			}
+			cmd, err := proc.Cmdline()
+			if err != nil {
+				cmd = ""
+			}
 
 			mu.Lock()
 			results = append(results, ProcessInfo{
@@ -93,37 +115,14 @@ func GetProcesses() ([]ProcessInfo, error) {
 	return results, nil
 }
 
-// detectChanges compares the old and new process lists and identifies events.
-func detectChanges(prev map[int32]ProcessInfo, current []ProcessInfo) []string {
-	var events []string
+// detectChanges compares old and new process lists and identifies new processes and other events.
+func detectChanges(prev map[int32]ProcessInfo, current []ProcessInfo) (newProcs []ProcessInfo, events []string) {
 	currentMap := make(map[int32]ProcessInfo)
 
 	for _, proc := range current {
 		currentMap[proc.PID] = proc
-
 		if _, exists := prev[proc.PID]; !exists {
-			// Prepare process details for AI analysis.
-			processData := ai.ProcessData{
-				PID:     proc.PID,
-				Name:    proc.Name,
-				Status:  proc.Status,
-				CPU:     proc.CPU,
-				Memory:  proc.Memory,
-				Command: proc.Command,
-			}
-			analysis, err := ai.AnalyzeProcess(processData)
-			description := ""
-			if err != nil {
-				description = "AI analysis unavailable"
-			} else {
-				description = analysis.Description
-				if analysis.Malicious {
-					description += " [WARNING: Potentially Malicious]"
-				} else {
-					description += " [Safe]"
-				}
-			}
-			events = append(events, fmt.Sprintf("🔵 New Process Started: %s (PID: %d). %s", proc.Name, proc.PID, description))
+			newProcs = append(newProcs, proc)
 		} else if prev[proc.PID].Status != proc.Status {
 			events = append(events, fmt.Sprintf("⚠️ Process %s (PID: %d) changed status: %s → %s",
 				proc.Name, proc.PID, prev[proc.PID].Status, proc.Status))
@@ -136,5 +135,31 @@ func detectChanges(prev map[int32]ProcessInfo, current []ProcessInfo) []string {
 		}
 	}
 
-	return events
+	return newProcs, events
+}
+
+// analyzeNewProcess performs AI analysis for a new process and sends an event message.
+func analyzeNewProcess(proc ProcessInfo, events chan<- string) {
+	// Prepare process data for AI analysis.
+	processData := ai.ProcessData{
+		PID:     proc.PID,
+		Name:    proc.Name,
+		Status:  proc.Status,
+		CPU:     proc.CPU,
+		Memory:  proc.Memory,
+		Command: proc.Command,
+	}
+	analysis, err := ai.AnalyzeProcess(processData)
+	description := ""
+	if err != nil {
+		description = "AI analysis unavailable"
+	} else {
+		description = analysis.Description
+		if analysis.Malicious {
+			description += " [WARNING: Potentially Malicious]"
+		} else {
+			description += " [Safe]"
+		}
+	}
+	events <- fmt.Sprintf("🔵 New Process Started: %s (PID: %d). %s", proc.Name, proc.PID, description)
 }
