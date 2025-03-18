@@ -2,7 +2,10 @@ module github.com/amjadcp/process
 
 go 1.24.1
 
-require github.com/shirou/gopsutil/v3 v3.24.5
+require (
+	github.com/joho/godotenv v1.5.1
+	github.com/shirou/gopsutil/v3 v3.24.5
+)
 
 require (
 	github.com/go-ole/go-ole v1.2.6 // indirect

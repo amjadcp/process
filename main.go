@@ -19,7 +19,7 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
-	fmt.Println("🚀 Process monitoring started. Waiting for changes...\n")
+	fmt.Println("🚀 Process monitoring started. Waiting for changes...")
 
 	for {
 		select {
@@ -30,4 +30,5 @@ func main() {
 			return
 		}
 	}
+
 }
