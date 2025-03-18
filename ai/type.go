@@ -16,35 +16,7 @@ type AnalysisResult struct {
 	Malicious   bool   `json:"malicious"`
 }
 
-// GroqRequest represents the payload sent to the Groq API.
-type GroqRequest struct {
-	Model    string    `json:"model"`
-	Messages []Message `json:"messages"`
-}
-
-// Message represents a single message in the Groq API request.
-type Message struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
-
-// GroqResponse represents the expected structure of the Groq API response.
-type GroqResponse struct {
-	ID      string `json:"id"`
-	Object  string `json:"object"`
-	Created int64  `json:"created"`
-	Model   string `json:"model"`
-	Choices []struct {
-		Index   int `json:"index"`
-		Message struct {
-			Role    string `json:"role"`
-			Content string `json:"content"`
-		} `json:"message"`
-		FinishReason string `json:"finish_reason"`
-	} `json:"choices"`
-	Usage struct {
-		PromptTokens     int `json:"prompt_tokens"`
-		CompletionTokens int `json:"completion_tokens"`
-		TotalTokens      int `json:"total_tokens"`
-	} `json:"usage"`
+// AIService defines the interface for AI interactions.
+type AIService interface {
+	Chat(prompt string) (string, error)
 }

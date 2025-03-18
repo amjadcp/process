@@ -8,11 +8,6 @@ import (
 	"github.com/amjadcp/process/config"
 )
 
-// AIService defines the interface for AI interactions.
-type AIService interface {
-	Chat(prompt string) (string, error)
-}
-
 // AnalyzeProcess calls the AI service to explain the process’s purpose
 // and to assess whether it might be malicious.
 func AnalyzeProcess(pd ProcessData) (AnalysisResult, error) {
@@ -22,7 +17,7 @@ func AnalyzeProcess(pd ProcessData) (AnalysisResult, error) {
 	)
 
 	// Inject configuration using dependency injection.
-	var service AIService = Groq{
+	var service AIService = &Groq{
 		URL:    config.Env.GROQ_API_URL,
 		Model:  config.Env.GROQ_MODEL,
 		APIKEY: config.Env.GROQ_API_KEY,
