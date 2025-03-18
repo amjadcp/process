@@ -57,15 +57,15 @@ func TrackProcesses(events chan<- string, pollInterval time.Duration) {
 }
 
 // GetProcesses retrieves a list of running processes using a worker pool to limit concurrency.
-func GetProcesses() ([]ProcessInfo, error) {
+func GetProcesses() (map[int32]ProcessInfo, error) {
 	procs, err := process.Processes()
 	if err != nil {
 		return nil, err
 	}
 
-	var results []ProcessInfo
 	var wg sync.WaitGroup
 	var mu sync.Mutex
+	results := make(map[int32]ProcessInfo)
 	concurrencyLimit := 10
 	sem := make(chan struct{}, concurrencyLimit)
 
@@ -99,14 +99,14 @@ func GetProcesses() ([]ProcessInfo, error) {
 			}
 
 			mu.Lock()
-			results = append(results, ProcessInfo{
+			results[proc.Pid] = ProcessInfo{
 				PID:     proc.Pid,
 				Name:    name,
 				Status:  status,
 				CPU:     cpu,
 				Memory:  mem,
 				Command: cmd,
-			})
+			}
 			mu.Unlock()
 		}(p)
 	}
@@ -116,21 +116,20 @@ func GetProcesses() ([]ProcessInfo, error) {
 }
 
 // detectChanges compares old and new process lists and identifies new processes and other events.
-func detectChanges(prev map[int32]ProcessInfo, current []ProcessInfo) (newProcs []ProcessInfo, events []string) {
-	currentMap := make(map[int32]ProcessInfo)
+func detectChanges(prev map[int32]ProcessInfo, current map[int32]ProcessInfo) (newProcs map[int32]ProcessInfo, events []string) {
+	newProcs = make(map[int32]ProcessInfo)
 
-	for _, proc := range current {
-		currentMap[proc.PID] = proc
-		if _, exists := prev[proc.PID]; !exists {
-			newProcs = append(newProcs, proc)
-		} else if prev[proc.PID].Status != proc.Status {
+	for pid, proc := range current {
+		if _, isExisted := prev[pid]; !isExisted {
+			newProcs[pid] = proc
+		} else if prev[pid].Status != proc.Status {
 			events = append(events, fmt.Sprintf("⚠️ Process %s (PID: %d) changed status: %s → %s",
-				proc.Name, proc.PID, prev[proc.PID].Status, proc.Status))
+				proc.Name, proc.PID, prev[pid].Status, proc.Status))
 		}
 	}
 
 	for pid, proc := range prev {
-		if _, exists := currentMap[pid]; !exists {
+		if _, isExisted := current[pid]; !isExisted {
 			events = append(events, fmt.Sprintf("❌ Process Stopped: %s (PID: %d)", proc.Name, pid))
 		}
 	}
