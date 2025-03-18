@@ -151,6 +151,7 @@ func analyzeNewProcess(proc ProcessInfo, events chan<- string) {
 	analysis, err := ai.AnalyzeProcess(processData)
 	description := ""
 	if err != nil {
+		fmt.Printf("Getting Error from the AI Service: %s \n", err.Error())
 		description = "AI analysis unavailable"
 	} else {
 		description = analysis.Description

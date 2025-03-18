@@ -9,9 +9,12 @@ import (
 )
 
 type EnvStruct struct {
-	GROQ_API_URL string
-	GROQ_API_KEY string
-	GROQ_MODEL   string
+	GROQ_API_URL   string
+	GROQ_API_KEY   string
+	GROQ_MODEL     string
+	OLLAMA_API_URL string
+	OLLAMA_API_KEY string
+	OLLAMA_MODEL   string
 }
 
 var (
@@ -31,6 +34,9 @@ func init() {
 			GROQ_API_URL: os.Getenv("GROQ_API_URL"),
 			GROQ_API_KEY: os.Getenv("GROQ_API_KEY"),
 			GROQ_MODEL:   os.Getenv("GROQ_MODEL"),
+			OLLAMA_API_URL: os.Getenv("OLLAMA_API_URL"),
+			OLLAMA_API_KEY: os.Getenv("OLLAMA_API_KEY"),
+			OLLAMA_MODEL: os.Getenv("OLLAMA_MODEL"),
 		}
 	})
 }

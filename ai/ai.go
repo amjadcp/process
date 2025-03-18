@@ -17,10 +17,15 @@ func AnalyzeProcess(pd ProcessData) (AnalysisResult, error) {
 	)
 
 	// Inject configuration using dependency injection.
-	var service AIService = &Groq{
-		URL:    config.Env.GROQ_API_URL,
-		Model:  config.Env.GROQ_MODEL,
-		APIKEY: config.Env.GROQ_API_KEY,
+	// var service AIService = &Groq{
+	// 	URL:    config.Env.GROQ_API_URL,
+	// 	Model:  config.Env.GROQ_MODEL,
+	// 	APIKEY: config.Env.GROQ_API_KEY,
+	// }
+	var service AIService = &Ollama{
+		URL:    config.Env.OLLAMA_API_URL,
+		Model:  config.Env.OLLAMA_MODEL,
+		APIKEY: config.Env.OLLAMA_API_KEY,
 	}
 	message, err := service.Chat(prompt)
 	if err != nil {
