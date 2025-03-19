@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/amjadcp/process/ai"
+	"github.com/amjadcp/process-monitor/ai"
 	"github.com/shirou/gopsutil/v3/process"
 )
 

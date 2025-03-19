@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/amjadcp/process/config"
+	"github.com/amjadcp/process-monitor/config"
 )
 
 // AnalyzeProcess calls the AI service to explain the process’s purpose

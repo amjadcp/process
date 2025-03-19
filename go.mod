@@ -1,4 +1,4 @@
-module github.com/amjadcp/process
+module github.com/amjadcp/process-monitor
 
 go 1.24.1
 

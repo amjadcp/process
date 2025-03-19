@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/amjadcp/process/process"
+	"github.com/amjadcp/process-monitor/process"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
