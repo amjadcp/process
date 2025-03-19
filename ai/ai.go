@@ -8,6 +8,46 @@ import (
 	"github.com/amjadcp/process-monitor/config"
 )
 
+// ProcessData contains the process details to be analyzed.
+type ProcessData struct {
+	PID     int32   `json:"pid"`
+	Name    string  `json:"name"`
+	Status  string  `json:"status"`
+	CPU     float64 `json:"cpu"`
+	Memory  float32 `json:"memory"`
+	Command string  `json:"command"`
+}
+
+// AnalysisResult represents the analysis outcome from the AI service.
+type AnalysisResult struct {
+	Description string `json:"description"`
+	Malicious   bool   `json:"malicious"`
+}
+
+// AIService defines the interface for AI interactions.
+type AIService interface {
+	Chat(prompt string) (string, error)
+}
+
+func NewAIService(aiService string) AIService {
+	switch aiService {
+	case "groq":
+		return &Groq{
+			URL:    config.Env.GROQ_API_URL,
+			Model:  config.Env.GROQ_MODEL,
+			APIKEY: config.Env.GROQ_API_KEY,
+		}
+	case "ollama":
+		return &Ollama{
+			URL:    config.Env.OLLAMA_API_URL,
+			Model:  config.Env.OLLAMA_MODEL,
+			APIKEY: config.Env.OLLAMA_API_KEY,
+		}
+	default:
+		return nil
+	}
+}
+
 // AnalyzeProcess calls the AI service to explain the process’s purpose
 // and to assess whether it might be malicious.
 func AnalyzeProcess(pd ProcessData) (AnalysisResult, error) {
@@ -22,11 +62,7 @@ func AnalyzeProcess(pd ProcessData) (AnalysisResult, error) {
 	// 	Model:  config.Env.GROQ_MODEL,
 	// 	APIKEY: config.Env.GROQ_API_KEY,
 	// }
-	var service AIService = &Ollama{
-		URL:    config.Env.OLLAMA_API_URL,
-		Model:  config.Env.OLLAMA_MODEL,
-		APIKEY: config.Env.OLLAMA_API_KEY,
-	}
+	service := NewAIService(config.Env.AI_SERVICE) 
 	message, err := service.Chat(prompt)
 	if err != nil {
 		return AnalysisResult{}, err
