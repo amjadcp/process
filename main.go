@@ -23,7 +23,7 @@ func main() {
 	app := NewApp()
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:             "test",
+		Title:             "Process Monitor",
 		Width:             1024,
 		Height:            768,
 		MinWidth:          1024,
