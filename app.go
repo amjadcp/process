@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"github.com/amjadcp/process/process"
 	"time"
+
+	"github.com/amjadcp/process/process"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -25,7 +27,7 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx, a.cancel = context.WithCancel(ctx) // Store cancel function
 
 	// Create a buffered channel to avoid blocking
-	eventsChannel := make(chan string, 100)
+	eventsChannel := make(chan process.ProcessInfo, 100)
 
 	// Start tracking processes
 	go process.TrackProcesses(eventsChannel, 2*time.Second)
@@ -39,7 +41,12 @@ func (a *App) startup(ctx context.Context) {
 					return // Exit if channel is closed
 				}
 				fmt.Println(event)
-				runtime.EventsEmit(a.ctx, "process_log", event)
+				eventJSON, err := json.Marshal(event)
+				if err != nil {
+					fmt.Println("Error encoding JSON:", err)
+					continue
+				}
+				runtime.EventsEmit(a.ctx, "process_log", string(eventJSON))
 			case <-a.ctx.Done():
 				fmt.Println("Stopping process tracking...")
 				return
