@@ -15,14 +15,14 @@ export function Layout() {
           >
             Process Logs
           </NavLink>
-          <NavLink 
+          {/* <NavLink 
             to="/settings" 
             className={({ isActive }) => 
               `block p-2 rounded ${isActive ? 'bg-blue-100 text-blue-800' : 'text-gray-700 hover:bg-gray-200'}`
             }
           >
             Settings
-          </NavLink>
+          </NavLink> */}
         </nav>
       </aside>
       
